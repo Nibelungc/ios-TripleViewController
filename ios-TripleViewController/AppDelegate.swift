@@ -17,25 +17,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         // Create required root controller, in the middle
         let root = ViewController()
-        root.view.backgroundColor = .blue
         root.title = "Root Controller"
+        root.view.backgroundColor = .blue
         
         // Create Triple controller
         let triple = TripleViewController(rootController: UINavigationController(rootViewController: root))
         triple.view.backgroundColor = .gray
         
         // Create left controller
-        let left = UIViewController()
-        left.view.backgroundColor = UIColor.groupTableViewBackground
+        let left = ChildViewController()
         left.title = "Left Controller"
+        left.view.backgroundColor = UIColor.groupTableViewBackground
         
         // Add left controller to Triple controller
         triple.set(controller: UINavigationController(rootViewController: left), at: .left)
         
         // Create right controller
-        let right = UIViewController()
-        right.view.backgroundColor = .red
+        let right = ChildViewController()
         right.title = "Right Controller"
+        right.view.backgroundColor = .red
         
         // Add right controller to Triple controller
         triple.set(controller: UINavigationController(rootViewController: right), at: .right)

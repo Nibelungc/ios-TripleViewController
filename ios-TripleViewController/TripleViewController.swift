@@ -12,6 +12,10 @@ class TripleControllerContainer: UIView {}
 
 enum TripleViewControllerPosition {
     case left, right
+    
+    static var all: [TripleViewControllerPosition] {
+        return [left, right]
+    }
 }
 
 class TripleViewController: UIViewController {
@@ -20,6 +24,7 @@ class TripleViewController: UIViewController {
         static let countOfContainters = 3
         static let leftControllerLeadingPadding: CGFloat = 0
         static let rightControllerTrailingPadding: CGFloat = 0
+        static let appearanceAnimationDuration: TimeInterval = 0.3
     }
     
     // MARK: - Public properties
@@ -98,32 +103,75 @@ class TripleViewController: UIViewController {
     func setController(at position: TripleViewControllerPosition, hidden: Bool) {
         if isPortraitOrientation {
             switch position {
-            case .left: _setController(at: .right, hidden: true)
-            case .right: _setController(at: .left, hidden: true)
+            case .left: setViewController(at: .right, hidden: true)
+            case .right: setViewController(at: .left, hidden: true)
             }
         }
-        _setController(at: position, hidden: hidden)
+        setViewController(at: position, hidden: hidden)
+    }
+    
+    // MARK: - Appearance
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        TripleViewControllerPosition.all
+            .filter { !isControllerHidden(at: $0) }
+            .forEach { controller(at: $0)?.beginAppearanceTransition(true, animated: animated) }
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        TripleViewControllerPosition.all
+            .filter { !isControllerHidden(at: $0) }
+            .forEach { controller(at: $0)?.endAppearanceTransition() }
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        TripleViewControllerPosition.all
+            .filter { !isControllerHidden(at: $0) }
+            .forEach { controller(at: $0)?.beginAppearanceTransition(false, animated: animated) }
+    }
+    
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        TripleViewControllerPosition.all
+            .filter { !isControllerHidden(at: $0) }
+            .forEach { controller(at: $0)?.endAppearanceTransition() }
+    }
+    
+    override var shouldAutomaticallyForwardAppearanceMethods: Bool {
+        return false
     }
     
     // MARK: - Private
     
-    func _setController(at position: TripleViewControllerPosition, hidden: Bool) {
+    func setViewController(at position: TripleViewControllerPosition, hidden: Bool, animated: Bool = true) {
         assert(controller(at: position) != nil, "Can't show/hide controller, because it doesn't exist")
         guard isControllerHidden(at: position) != hidden else { return }
         
-        func updateConstraint(_ constraint: NSLayoutConstraint, withConstant constant: CGFloat) {
-            UIView.animate(withDuration: 0.3) {
+        func updateConstraint(_ constraint: NSLayoutConstraint, withConstant constant: CGFloat, completion: @escaping (Bool) -> Void) {
+            let duration = animated ? Constants.appearanceAnimationDuration : 0.0
+            UIView.animate(withDuration: duration, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 1.0, options: [], animations: {
                 constraint.constant = constant
                 self.view.layoutIfNeeded()
-            }
+            }, completion: completion)
         }
         switch position {
         case .left:
             let constant: CGFloat = hidden ? self.leftController!.view.bounds.width : Constants.leftControllerLeadingPadding
-            updateConstraint(leftControllerContainerLeadingConstraint, withConstant: constant)
+            self.leftController?.beginAppearanceTransition(!hidden, animated: animated)
+            updateConstraint(leftControllerContainerLeadingConstraint, withConstant: constant) {
+                isFinished in
+                self.leftController?.endAppearanceTransition()
+            }
         case .right:
+            self.rightController?.beginAppearanceTransition(!hidden, animated: animated)
             let constant: CGFloat = hidden ? self.rightController!.view.bounds.width : Constants.rightControllerTrailingPadding
-            updateConstraint(rightControllerContainerTrailingConstraint, withConstant: constant)
+            updateConstraint(rightControllerContainerTrailingConstraint, withConstant: constant) {
+                isFinished in
+                self.rightController?.endAppearanceTransition()
+            }
         }
     }
     
