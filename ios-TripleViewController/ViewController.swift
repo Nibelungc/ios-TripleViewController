@@ -45,6 +45,7 @@ class BaseViewController: UIViewController {
     
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
+        traitAndSizeLogger?.log("\(title!): traitCollectionDidChange previousTraitCollection: \(previousTraitCollection?.shortDescription ?? "nil")")
         label.text = traitCollection.shortDescription
         label.sizeToFit()
     }
@@ -68,6 +69,16 @@ class BaseViewController: UIViewController {
         super.viewDidDisappear(animated)
         appearanceLogger?.log("\(String(describing: title)) - " + #function)
     }
+    
+    override func willTransition(to newCollection: UITraitCollection, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.willTransition(to: newCollection, with: coordinator)
+        traitAndSizeLogger?.log("\(title!): viewWillTransition to newCollection: \(newCollection.shortDescription)")
+    }
+    
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        traitAndSizeLogger?.log("\(title!): viewWillTransition toSize: \(size)")
+    }
 }
 
 class ViewController: BaseViewController {
@@ -89,21 +100,6 @@ class ViewController: BaseViewController {
     
     override var preferredStatusBarStyle: UIStatusBarStyle {
         return .default
-    }
-    
-    override func willTransition(to newCollection: UITraitCollection, with coordinator: UIViewControllerTransitionCoordinator) {
-        super.willTransition(to: newCollection, with: coordinator)
-        traitAndSizeLogger?.log("\(title!): viewWillTransition to newCollection: \(newCollection.shortDescription)")
-    }
-    
-    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
-        super.viewWillTransition(to: size, with: coordinator)
-        traitAndSizeLogger?.log("\(title!): viewWillTransition toSize: \(size)")
-    }
-    
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-        traitAndSizeLogger?.log("\(title!): traitCollectionDidChange previousTraitCollection: \(previousTraitCollection?.shortDescription ?? "nil")")
     }
 }
 
