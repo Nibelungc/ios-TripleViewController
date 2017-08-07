@@ -144,6 +144,10 @@ class TripleViewController: UIViewController {
         return false
     }
     
+    override var childViewControllerForStatusBarStyle: UIViewController? {
+        return rootController
+    }
+    
     // MARK: - Private
     
     func setViewController(at position: TripleViewControllerPosition, hidden: Bool, animated: Bool = true) {

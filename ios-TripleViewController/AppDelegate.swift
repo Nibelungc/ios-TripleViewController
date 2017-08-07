@@ -21,7 +21,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         root.view.backgroundColor = .blue
         
         // Create Triple controller
-        let triple = TripleViewController(rootController: UINavigationController(rootViewController: root))
+        let triple = TripleViewController(rootController: NavigationController(rootViewController: root))
         triple.view.backgroundColor = .gray
         
         // Create left controller

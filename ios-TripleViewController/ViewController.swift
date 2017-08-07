@@ -8,6 +8,13 @@
 
 import UIKit
 
+class NavigationController: UINavigationController {
+    
+    override var childViewControllerForStatusBarStyle: UIViewController? {
+        return childViewControllers.first
+    }
+}
+
 class ViewController: UIViewController {
     
     override func viewDidLoad() {
@@ -23,6 +30,10 @@ class ViewController: UIViewController {
     
     func toogleRightController() {
         tripleViewController?.toogleContoller(at: .right)
+    }
+    
+    override var preferredStatusBarStyle: UIStatusBarStyle {
+        return .default
     }
 }
 
