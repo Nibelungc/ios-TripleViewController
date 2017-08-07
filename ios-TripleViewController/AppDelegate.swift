@@ -25,7 +25,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         triple.view.backgroundColor = .gray
         
         // Create left controller
-        let left = ChildViewController()
+        let left = BaseViewController()
         left.title = "Left Controller"
         left.view.backgroundColor = UIColor.groupTableViewBackground
         
@@ -33,7 +33,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         triple.set(controller: UINavigationController(rootViewController: left), at: .left)
         
         // Create right controller
-        let right = ChildViewController()
+        let right = BaseViewController()
         right.title = "Right Controller"
         right.view.backgroundColor = .red
         

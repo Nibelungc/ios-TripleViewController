@@ -46,6 +46,14 @@ class TripleViewController: UIViewController {
     private var isPortraitOrientation: Bool {
         return UIApplication.shared.statusBarOrientation.isPortrait
     }
+    private var sideViewControllers: [UIViewController] {
+        return TripleViewControllerPosition.all.map { self.controller(at: $0) }.flatMap { $0 }
+    }
+    private var allVisibleControllers: [UIViewController] {
+        return [rootController] + TripleViewControllerPosition.all
+            .filter { !isControllerHidden(at: $0) }
+            .flatMap { controller(at: $0) }
+    }
     
     // MARK: - Initialization
 
@@ -64,9 +72,14 @@ class TripleViewController: UIViewController {
     // MARK: - Rotation
     
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
-        guard !isControllerHidden(at: .left) && !isControllerHidden(at: .right) else { return }
-        guard !isPortraitOrientation else { return }
-        setController(at: .right, hidden: true)
+        super.viewWillTransition(to: size, with: coordinator)
+        coordinator.animate(alongsideTransition: nil) {
+            context in
+            self.updateOverrideTraitCollection()
+        }
+        if !isControllerHidden(at: .left) && !isControllerHidden(at: .right) && !isPortraitOrientation {
+            setController(at: .right, hidden: true)
+        }
     }
     
     // MARK: - Public
@@ -86,6 +99,7 @@ class TripleViewController: UIViewController {
         case .left: leftController = controller
         case .right: rightController = controller
         }
+        updateOverrideTraitCollection()
     }
     
     func isControllerHidden(at position: TripleViewControllerPosition) -> Bool {
@@ -114,30 +128,22 @@ class TripleViewController: UIViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        TripleViewControllerPosition.all
-            .filter { !isControllerHidden(at: $0) }
-            .forEach { controller(at: $0)?.beginAppearanceTransition(true, animated: animated) }
+        allVisibleControllers.forEach { $0.beginAppearanceTransition(true, animated: animated) }
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        TripleViewControllerPosition.all
-            .filter { !isControllerHidden(at: $0) }
-            .forEach { controller(at: $0)?.endAppearanceTransition() }
+        allVisibleControllers.forEach { $0.endAppearanceTransition() }
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        TripleViewControllerPosition.all
-            .filter { !isControllerHidden(at: $0) }
-            .forEach { controller(at: $0)?.beginAppearanceTransition(false, animated: animated) }
+        allVisibleControllers.forEach { $0.beginAppearanceTransition(false, animated: animated) }
     }
     
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        TripleViewControllerPosition.all
-            .filter { !isControllerHidden(at: $0) }
-            .forEach { controller(at: $0)?.endAppearanceTransition() }
+        allVisibleControllers.forEach { $0.endAppearanceTransition() }
     }
     
     override var shouldAutomaticallyForwardAppearanceMethods: Bool {
@@ -146,6 +152,27 @@ class TripleViewController: UIViewController {
     
     override var childViewControllerForStatusBarStyle: UIViewController? {
         return rootController
+    }
+    
+    // MARK: - Trait Collection
+    
+    func updateOverrideTraitCollection() {
+        let childHorisontal = UITraitCollection(horizontalSizeClass: .compact)
+        let childVertical = UITraitCollection(verticalSizeClass: .regular)
+        let childTrait = UITraitCollection(traitsFrom: [childHorisontal, childVertical])
+        sideViewControllers.forEach {
+            self.setOverrideTraitCollection(childTrait, forChildViewController: $0)
+        }
+        var rootTraits = [UITraitCollection(verticalSizeClass: .regular)]
+        var rootHorizontal: UIUserInterfaceSizeClass
+        if isPortraitOrientation {
+            rootHorizontal = isControllerHidden(at: .left) && isControllerHidden(at: .right) ? .regular : .compact
+        } else {
+            rootHorizontal = !isControllerHidden(at: .left) && !isControllerHidden(at: .right) ? .compact : .regular
+        }
+        rootTraits.append(UITraitCollection(horizontalSizeClass: rootHorizontal))
+        let rootTrait = UITraitCollection(traitsFrom: rootTraits)
+        setOverrideTraitCollection(rootTrait, forChildViewController: rootController)
     }
     
     // MARK: - Private
@@ -177,6 +204,7 @@ class TripleViewController: UIViewController {
                 self.rightController?.endAppearanceTransition()
             }
         }
+        updateOverrideTraitCollection()
     }
     
     private func container(forControllerAt position: TripleViewControllerPosition) -> TripleControllerContainer {
@@ -189,6 +217,7 @@ class TripleViewController: UIViewController {
     private func setup() {
         setupContainers()
         installController(controller: rootController, into: rootControllerContainer)
+        updateOverrideTraitCollection()
     }
     
     private func installController(controller: UIViewController, into contatiner: TripleControllerContainer) {

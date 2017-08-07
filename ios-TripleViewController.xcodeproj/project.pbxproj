@@ -12,7 +12,6 @@
 		95F4C1A21F34A4A6003C60BC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 95F4C1A11F34A4A6003C60BC /* Assets.xcassets */; };
 		95F4C1A51F34A4A6003C60BC /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 95F4C1A31F34A4A6003C60BC /* LaunchScreen.storyboard */; };
 		95F4C1B01F34A578003C60BC /* TripleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95F4C1AF1F34A578003C60BC /* TripleViewController.swift */; };
-		95F4C1B51F383A97003C60BC /* ChildViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95F4C1B41F383A97003C60BC /* ChildViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,7 +22,6 @@
 		95F4C1A41F34A4A6003C60BC /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		95F4C1A61F34A4A6003C60BC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		95F4C1AF1F34A578003C60BC /* TripleViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TripleViewController.swift; sourceTree = "<group>"; };
-		95F4C1B41F383A97003C60BC /* ChildViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ChildViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,7 +57,6 @@
 				95F4C1AE1F34A571003C60BC /* Sources */,
 				95F4C19A1F34A4A6003C60BC /* AppDelegate.swift */,
 				95F4C19C1F34A4A6003C60BC /* ViewController.swift */,
-				95F4C1B41F383A97003C60BC /* ChildViewController.swift */,
 				95F4C1A11F34A4A6003C60BC /* Assets.xcassets */,
 				95F4C1A31F34A4A6003C60BC /* LaunchScreen.storyboard */,
 				95F4C1A61F34A4A6003C60BC /* Info.plist */,
@@ -149,7 +146,6 @@
 				95F4C19D1F34A4A6003C60BC /* ViewController.swift in Sources */,
 				95F4C19B1F34A4A6003C60BC /* AppDelegate.swift in Sources */,
 				95F4C1B01F34A578003C60BC /* TripleViewController.swift in Sources */,
-				95F4C1B51F383A97003C60BC /* ChildViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
