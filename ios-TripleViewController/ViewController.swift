@@ -26,7 +26,7 @@ class BaseViewController: UIViewController {
 
     var label: UILabel!
     var appearanceLogger: Logger?
-    var traitAndSizeLogger: Logger? = Logger()
+    var traitAndSizeLogger: Logger?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -91,11 +91,11 @@ class ViewController: BaseViewController {
     }
     
     func toogleLeftController() {
-        tripleViewController?.toogleContoller(at: .left)
+        tripleViewController?.toggleContoller(at: .left)
     }
     
     func toogleRightController() {
-        tripleViewController?.toogleContoller(at: .right)
+        tripleViewController?.toggleContoller(at: .right)
     }
     
     override var preferredStatusBarStyle: UIStatusBarStyle {
