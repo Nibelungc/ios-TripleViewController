@@ -15,22 +15,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
         
-        // Create required root controller, in the middle
-        let root = ViewController()
-        root.title = "Root Controller"
-        root.view.backgroundColor = .blue
-        
-        // Create Triple controller
-        let triple = TripleViewController(rootController: NavigationController(rootViewController: root))
-        triple.view.backgroundColor = .gray
-        
         // Create left controller
         let left = BaseViewController()
         left.title = "Left Controller"
         left.view.backgroundColor = UIColor.groupTableViewBackground
+
+        // Create middle controller
+        let middle = ViewController()
+        middle.title = "Middle Controller"
+        middle.view.backgroundColor = .blue
         
-        // Add left controller to Triple controller
-        triple.set(controller: UINavigationController(rootViewController: left), at: .left)
+        // Create Triple controller
+        let triple = TripleViewController(leftController: UINavigationController(rootViewController: left),
+                                          middleController: UINavigationController(rootViewController: middle))
+        triple.view.backgroundColor = .gray
         
         // Create right controller
         let right = BaseViewController()

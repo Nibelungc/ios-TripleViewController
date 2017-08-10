@@ -29,15 +29,14 @@ class TripleViewController: UIViewController {
     
     // MARK: - Public properties
     
-    let rootController: UIViewController
+    private(set) var middleController: UIViewController
+    private(set) var leftController: UIViewController?
+    private(set) var rightController: UIViewController?
     
     // MARK: - Private properties
     
-    private var leftController: UIViewController?
-    private var rightController: UIViewController?
-    
-    private let rootControllerContainer = TripleControllerContainer(frame: .zero)
     private let leftControllerContainer = TripleControllerContainer(frame: .zero)
+    private let middleControllerContainer = TripleControllerContainer(frame: .zero)
     private let rightControllerContainer = TripleControllerContainer(frame: .zero)
     
     private var leftSeparatorView = UIView(frame: .zero)
@@ -53,17 +52,18 @@ class TripleViewController: UIViewController {
         return TripleViewControllerPosition.all.map { self.controller(at: $0) }.flatMap { $0 }
     }
     private var allVisibleControllers: [UIViewController] {
-        return [rootController] + TripleViewControllerPosition.all
+        return [middleController] + TripleViewControllerPosition.all
             .filter { !isControllerHidden(at: $0) }
             .flatMap { controller(at: $0) }
     }
     
     // MARK: - Initialization
     
-    init(rootController: UIViewController) {
+    init(leftController: UIViewController, middleController: UIViewController) {
         precondition(UIDevice.current.userInterfaceIdiom == .pad,
                      "TripleViewController supports only the pad user interface idiom")
-        self.rootController = rootController
+        self.leftController = leftController
+        self.middleController = middleController
         super.init(nibName: nil, bundle: nil)
         setup()
     }
@@ -82,13 +82,19 @@ class TripleViewController: UIViewController {
     }
     
     func set(controller: UIViewController, at position: TripleViewControllerPosition) {
-        guard self.controller(at: position) !== controller else { return }
         self.controller(at: position)?.removeFromParent()
-        installController(controller: controller, into: container(forControllerAt: position))
+        installChildController(controller: controller, into: container(forControllerAt: position))
         switch position {
         case .left: leftController = controller
         case .right: rightController = controller
         }
+        updateOverrideTraitCollection()
+    }
+    
+    func set(middleController controller: UIViewController) {
+        middleController.removeFromParent()
+        installChildController(controller: controller, into: middleControllerContainer)
+        self.middleController = controller
         updateOverrideTraitCollection()
     }
     
@@ -141,7 +147,7 @@ class TripleViewController: UIViewController {
     }
     
     override var childViewControllerForStatusBarStyle: UIViewController? {
-        return rootController
+        return middleController
     }
     
     override func didMove(toParentViewController parent: UIViewController?) {
@@ -166,7 +172,7 @@ class TripleViewController: UIViewController {
         }
         rootTraits.append(UITraitCollection(horizontalSizeClass: rootHorizontal))
         let rootTrait = UITraitCollection(traitsFrom: rootTraits)
-        setOverrideTraitCollection(rootTrait, forChildViewController: rootController)
+        setOverrideTraitCollection(rootTrait, forChildViewController: middleController)
     }
     
     private func sideContainerWidth(for size: CGSize) -> CGFloat {
@@ -187,7 +193,7 @@ class TripleViewController: UIViewController {
     
     override func size(forChildContentContainer container: UIContentContainer, withParentContainerSize parentSize: CGSize) -> CGSize {
         let containerWidth = sideContainerWidth(for: parentSize)
-        if container === rootController {
+        if container === middleController {
             var size = parentSize
             let leftContainerWidth = isControllerHidden(at: .left) ? 0.0 : containerWidth
             let rightContainerWidth = isControllerHidden(at: .right) ? 0.0 : containerWidth
@@ -202,7 +208,7 @@ class TripleViewController: UIViewController {
     
     // MARK: - Private
     
-    func setViewController(at position: TripleViewControllerPosition, hidden: Bool, animated: Bool = true) {
+    private func setViewController(at position: TripleViewControllerPosition, hidden: Bool, animated: Bool = true) {
         assert(controller(at: position) != nil, "Can't show/hide controller, because it doesn't exist")
         guard isControllerHidden(at: position) != hidden else { return }
         
@@ -242,8 +248,8 @@ class TripleViewController: UIViewController {
     private func setup() {
         setupContainers()
         setupSeparators()
-        installController(controller: rootController, into: rootControllerContainer)
-        updateOverrideTraitCollection()
+        set(middleController: middleController)
+        set(controller: leftController!, at: .left)
     }
     
     private func setupSeparators() {
@@ -251,7 +257,7 @@ class TripleViewController: UIViewController {
         rightSeparatorView.backgroundColor = Constants.separatorColor
     }
     
-    private func installController(controller: UIViewController, into contatiner: TripleControllerContainer) {
+    private func installChildController(controller: UIViewController, into contatiner: TripleControllerContainer) {
         addChildViewController(controller) {
             childView, _ in
             contatiner.addSubview(childView)
@@ -269,7 +275,7 @@ class TripleViewController: UIViewController {
         
         var views = [
             "left": leftControllerContainer,
-            "root": rootControllerContainer,
+            "root": middleControllerContainer,
             "right": rightControllerContainer,
             "leftSeparator": leftSeparatorView,
             "rightSeparator": rightSeparatorView
@@ -287,7 +293,7 @@ class TripleViewController: UIViewController {
                                            metrics: metrics,
                                            views: views)
         )
-        leftControllerContainerLeadingConstraint = NSLayoutConstraint(item: view, attribute: .leading, relatedBy: .equal, toItem: leftControllerContainer, attribute: .leading, multiplier: 1.0, constant: sideWidth)
+        leftControllerContainerLeadingConstraint = NSLayoutConstraint(item: view, attribute: .leading, relatedBy: .equal, toItem: leftControllerContainer, attribute: .leading, multiplier: 1.0, constant: 0.0)
         constraints.append(leftControllerContainerLeadingConstraint)
         
         rightControllerContainerTrailingConstraint = NSLayoutConstraint(item: rightControllerContainer, attribute: .trailing, relatedBy: .equal, toItem: view, attribute: .trailing, multiplier: 1.0, constant: 0.0)
