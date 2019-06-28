@@ -8,6 +8,11 @@
 
 import UIKit
 
+@objc protocol TripleViewControllerDelegate: class {
+    @objc optional func tripleViewController(_ tripleController: TripleViewController, willChangeMiddleControllerToSize size: CGSize)
+    @objc optional func tripleViewController(_ tripleController: TripleViewController, didChangeMiddleControllerToSize size: CGSize)
+}
+
 class TripleControllerContainer: UIView {}
 
 enum TripleViewControllerPosition {
@@ -22,19 +27,21 @@ class TripleViewController: UIViewController {
     
     private struct Constants {
         static let countOfContainters = 3
-        static let appearanceAnimationDuration: TimeInterval = 0.3
+        static let appearanceAnimationDuration: TimeInterval = 0.5
         static let separatorWidth: CGFloat = 1.0
         static let separatorColor: UIColor = .gray
     }
     
     // MARK: - Public properties
     
+    var shouldEndEditingControllerOnHide = true
     private(set) var middleController: UIViewController
     private(set) var leftController: UIViewController?
     private(set) var rightController: UIViewController?
     
     // MARK: - Private properties
     
+    weak var delegate: TripleViewControllerDelegate?
     private let leftControllerContainer = TripleControllerContainer(frame: .zero)
     private let middleControllerContainer = TripleControllerContainer(frame: .zero)
     private let rightControllerContainer = TripleControllerContainer(frame: .zero)
@@ -49,12 +56,12 @@ class TripleViewController: UIViewController {
         return UIApplication.shared.statusBarOrientation.isPortrait
     }
     private var sideViewControllers: [UIViewController] {
-        return TripleViewControllerPosition.all.map { self.controller(at: $0) }.flatMap { $0 }
+        return TripleViewControllerPosition.all.map { self.controller(at: $0) }.compactMap { $0 }
     }
     private var allVisibleControllers: [UIViewController] {
         return [middleController] + TripleViewControllerPosition.all
             .filter { !isControllerHidden(at: $0) }
-            .flatMap { controller(at: $0) }
+            .compactMap { controller(at: $0) }
     }
     
     // MARK: - Initialization
@@ -82,20 +89,33 @@ class TripleViewController: UIViewController {
     }
     
     func set(controller: UIViewController, at position: TripleViewControllerPosition) {
-        self.controller(at: position)?.removeFromParent()
-        installChildController(controller: controller, into: container(forControllerAt: position))
+        installChildController(controller: controller,
+                               oldController: self.controller(at: position),
+                               into: container(forControllerAt: position))
+        if !isControllerHidden(at: position) {
+            controller.beginAppearanceTransition(true, animated: false)
+        }
         switch position {
         case .left: leftController = controller
         case .right: rightController = controller
         }
         updateOverrideTraitCollection()
+        if !isControllerHidden(at: position) {
+            controller.endAppearanceTransition()
+        }
     }
     
     func set(middleController controller: UIViewController) {
-        middleController.removeFromParent()
-        installChildController(controller: controller, into: middleControllerContainer)
-        self.middleController = controller
+        installChildController(controller: controller,
+                               oldController: middleController,
+                               into: middleControllerContainer)
+        let oldController = middleController
+        oldController.beginAppearanceTransition(false, animated: false)
+        controller.beginAppearanceTransition(true, animated: false)
+        middleController = controller
         updateOverrideTraitCollection()
+        oldController.endAppearanceTransition()
+        controller.endAppearanceTransition()
     }
     
     func isControllerHidden(at position: TripleViewControllerPosition) -> Bool {
@@ -146,33 +166,36 @@ class TripleViewController: UIViewController {
         return false
     }
     
-    override var childViewControllerForStatusBarStyle: UIViewController? {
+    override var childForStatusBarStyle: UIViewController? {
         return middleController
-    }
-    
-    override func didMove(toParentViewController parent: UIViewController?) {
-        super.didMove(toParentViewController: parent)
     }
     
     // MARK: - Trait Collection and sizing
     
     private func updateOverrideTraitCollection() {
+        updateOverrideTraitCollectionForSideControllers()
+        updateOverrideTraitCollectionForMiddleController()
+    }
+    
+    private func updateOverrideTraitCollectionForSideControllers() {
         let childHorisontal = UITraitCollection(horizontalSizeClass: .compact)
         let childVertical = UITraitCollection(verticalSizeClass: .regular)
         let childTrait = UITraitCollection(traitsFrom: [childHorisontal, childVertical])
         sideViewControllers.forEach {
-            self.setOverrideTraitCollection(childTrait, forChildViewController: $0)
+            self.setOverrideTraitCollection(childTrait, forChild: $0)
         }
-        var rootTraits = [UITraitCollection(verticalSizeClass: .regular)]
-        var rootHorizontal: UIUserInterfaceSizeClass
+    }
+    
+    private func updateOverrideTraitCollectionForMiddleController() {
+        let middleVertical = UITraitCollection(verticalSizeClass: .regular)
+        var middleHorizontal: UIUserInterfaceSizeClass
         if isPortraitOrientation {
-            rootHorizontal = isControllerHidden(at: .left) && isControllerHidden(at: .right) ? .regular : .compact
+            middleHorizontal = isControllerHidden(at: .left) && isControllerHidden(at: .right) ? .regular : .compact
         } else {
-            rootHorizontal = !isControllerHidden(at: .left) && !isControllerHidden(at: .right) ? .compact : .regular
+            middleHorizontal = !isControllerHidden(at: .left) && !isControllerHidden(at: .right) ? .compact : .regular
         }
-        rootTraits.append(UITraitCollection(horizontalSizeClass: rootHorizontal))
-        let rootTrait = UITraitCollection(traitsFrom: rootTraits)
-        setOverrideTraitCollection(rootTrait, forChildViewController: middleController)
+        let middleTrait = UITraitCollection(traitsFrom: [UITraitCollection(horizontalSizeClass: middleHorizontal), middleVertical])
+        setOverrideTraitCollection(middleTrait, forChild: middleController)
     }
     
     private func sideContainerWidth(for size: CGSize) -> CGFloat {
@@ -184,6 +207,7 @@ class TripleViewController: UIViewController {
         super.viewWillTransition(to: size, with: coordinator)
         coordinator.animate(alongsideTransition: nil) {
             _ in
+            
             self.updateOverrideTraitCollection()
         }
         if !isControllerHidden(at: .left) && !isControllerHidden(at: .right) && !isPortraitOrientation {
@@ -197,7 +221,9 @@ class TripleViewController: UIViewController {
             var size = parentSize
             let leftContainerWidth = isControllerHidden(at: .left) ? 0.0 : containerWidth
             let rightContainerWidth = isControllerHidden(at: .right) ? 0.0 : containerWidth
-            size.width -= leftContainerWidth - rightContainerWidth
+            let separators = leftSeparatorView.bounds.width + rightSeparatorView.bounds.width
+            size.width -= (leftContainerWidth + rightContainerWidth + separators)
+            size.height -= bottomLayoutGuide.length
             return size
         }
         if container === leftController || container === rightController {
@@ -214,24 +240,39 @@ class TripleViewController: UIViewController {
         
         func updateConstraint(_ constraint: NSLayoutConstraint, withConstant constant: CGFloat, completion: @escaping (Bool) -> Void) {
             let duration = animated ? Constants.appearanceAnimationDuration : 0.0
-            UIView.animate(withDuration: duration, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 1.0, options: [], animations: {
+            UIView.animate(withDuration: duration, animations: {
                 constraint.constant = constant
                 self.view.layoutIfNeeded()
-            }, completion: completion)
+                let newSize = self.size(forChildContentContainer: self.middleController, withParentContainerSize: self.view.bounds.size)
+                self.delegate?.tripleViewController?(self, willChangeMiddleControllerToSize: newSize)
+            }, completion: {
+                isFinished in
+                
+                self.delegate?.tripleViewController?(self, didChangeMiddleControllerToSize: self.middleController.view.bounds.size)
+                completion(isFinished)
+            })
         }
         switch position {
         case .left:
-            let constant: CGFloat = hidden ? self.leftController!.view.bounds.width : 0.0
+            let constant: CGFloat = hidden ? leftController!.view.bounds.width : 0.0
             self.leftController?.beginAppearanceTransition(!hidden, animated: animated)
+            if shouldEndEditingControllerOnHide && hidden {
+                self.leftController?.view.endEditing(true)
+            }
             updateConstraint(leftControllerContainerLeadingConstraint, withConstant: constant) {
                 _ in
+                
                 self.leftController?.endAppearanceTransition()
             }
         case .right:
             self.rightController?.beginAppearanceTransition(!hidden, animated: animated)
-            let constant: CGFloat = hidden ? self.rightController!.view.bounds.width : 0.0
+            if shouldEndEditingControllerOnHide && hidden {
+                self.rightController?.view.endEditing(true)
+            }
+            let constant: CGFloat = hidden ? rightController!.view.bounds.width : 0.0
             updateConstraint(rightControllerContainerTrailingConstraint, withConstant: constant) {
                 _ in
+                
                 self.rightController?.endAppearanceTransition()
             }
         }
@@ -247,19 +288,27 @@ class TripleViewController: UIViewController {
     
     private func setup() {
         setupContainers()
-        setupSeparators()
+        setupUI()
         set(middleController: middleController)
         set(controller: leftController!, at: .left)
     }
     
-    private func setupSeparators() {
+    private func setupUI() {
+        view.backgroundColor = .white
         leftSeparatorView.backgroundColor = Constants.separatorColor
         rightSeparatorView.backgroundColor = Constants.separatorColor
     }
     
-    private func installChildController(controller: UIViewController, into contatiner: TripleControllerContainer) {
+    private func installChildController(controller: UIViewController,
+                                        oldController: UIViewController?,
+                                        into contatiner: TripleControllerContainer) {
+        if let old = oldController {
+            setOverrideTraitCollection(nil, forChild: old)
+            old.removeFromParentController()
+        }
         addChildViewController(controller) {
             childView, _ in
+            
             contatiner.addSubview(childView)
             childView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
             childView.frame = contatiner.bounds
@@ -296,19 +345,18 @@ class TripleViewController: UIViewController {
         leftControllerContainerLeadingConstraint = NSLayoutConstraint(item: view, attribute: .leading, relatedBy: .equal, toItem: leftControllerContainer, attribute: .leading, multiplier: 1.0, constant: 0.0)
         constraints.append(leftControllerContainerLeadingConstraint)
         
-        rightControllerContainerTrailingConstraint = NSLayoutConstraint(item: rightControllerContainer, attribute: .trailing, relatedBy: .equal, toItem: view, attribute: .trailing, multiplier: 1.0, constant: 0.0)
+        rightControllerContainerTrailingConstraint = NSLayoutConstraint(item: rightControllerContainer, attribute: .trailing, relatedBy: .equal, toItem: view, attribute: .trailing, multiplier: 1.0, constant: sideWidth)
         constraints.append(rightControllerContainerTrailingConstraint)
         
         var elements: [String: Any] = views
         elements["bottomLayoutGuide"] = bottomLayoutGuide
-        let verticalConstraints: [NSLayoutConstraint] =
-            views.keys.map {
-                return NSLayoutConstraint.constraints(withVisualFormat: "V:|-0-[\($0)]-0-[bottomLayoutGuide]",
-                    options: .directionLeadingToTrailing,
-                    metrics: nil,
-                    views: elements)
-                }.flatMap { $0 }
-        constraints.append(contentsOf: verticalConstraints)
+        let verticalConstraints: [[NSLayoutConstraint]] = views.keys.map {
+            return NSLayoutConstraint.constraints(withVisualFormat: "V:|-0-[\($0)]-0-[bottomLayoutGuide]",
+                options: .directionLeadingToTrailing,
+                metrics: nil,
+                views: elements)
+        }
+        constraints.append(contentsOf: verticalConstraints.flatMap { $0 })
         NSLayoutConstraint.activate(constraints)
     }
 }
@@ -320,19 +368,16 @@ extension UIViewController {
         if parent is TripleViewController { return parent as? TripleViewController }
         return parent.tripleViewController
     }
-}
-
-fileprivate extension UIViewController {
     
     func addChildViewController(_ child: UIViewController, setup: (_ childView: UIView, _ superView: UIView) -> Void) {
-        addChildViewController(child)
+        addChild(child)
         setup(child.view, view)
-        child.didMove(toParentViewController: self)
+        child.didMove(toParent: self)
     }
     
-    func removeFromParent() {
-        willMove(toParentViewController: nil)
+    func removeFromParentController() {
+        willMove(toParent: nil)
         view.removeFromSuperview()
-        removeFromParentViewController()
+        removeFromParent()
     }
 }

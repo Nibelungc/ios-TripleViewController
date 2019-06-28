@@ -10,8 +10,8 @@ import UIKit
 
 class NavigationController: UINavigationController {
     
-    override var childViewControllerForStatusBarStyle: UIViewController? {
-        return childViewControllers.first
+    override var childForStatusBarStyle: UIViewController? {
+        return children.first
     }
 }
 
@@ -25,7 +25,7 @@ class Logger {
 class BaseViewController: UIViewController {
 
     var label: UILabel!
-    var appearanceLogger: Logger?
+    var appearanceLogger: Logger? = Logger()
     var traitAndSizeLogger: Logger?
     
     override func viewDidLoad() {
@@ -90,11 +90,11 @@ class ViewController: BaseViewController {
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .fastForward, target: self, action: #selector(toogleRightController))
     }
     
-    func toogleLeftController() {
+    @objc func toogleLeftController() {
         tripleViewController?.toggleContoller(at: .left)
     }
     
-    func toogleRightController() {
+    @objc func toogleRightController() {
         tripleViewController?.toggleContoller(at: .right)
     }
     
